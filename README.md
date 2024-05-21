@@ -1,0 +1,1 @@
+Docker compose of my [BS CompSci capstone project](https://github.com/foodfetcher/foodfetchers). This has some code changes to allow such a deployment, and will receive updates as I need them.
