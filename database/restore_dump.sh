@@ -1,0 +1,1 @@
+psql -U fetcher1 -d main < pg_dump

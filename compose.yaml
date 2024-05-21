@@ -1,0 +1,30 @@
+services:
+  site:
+    build: site
+    ports: 
+      - '8080:80'
+    volumes:
+      - "coverImages:/var/www/html/coverimages"
+    environment:
+      - DB_HOST=database
+      - DB_USER=fetcher1
+      - DB_PASS=1234
+      - DB_NAME=main
+    develop:
+      watch:
+        - action: sync
+          path: ./site/html
+          target: /var/www/html
+          ignore:
+            - coverimages
+  
+  database:
+    build: database
+    ports:
+      - '5432:5432'
+    volumes:
+      - "db:/var/lib/postgresql/data"
+
+volumes:
+  coverImages:
+  db:
