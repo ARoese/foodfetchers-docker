@@ -131,8 +131,8 @@
                           </div>';
                                               
                     $mealid = $row['mealid'];
-                    include_once 'viewMeal.php';
-                    include_once 'viewIngredients.php';
+                        include 'viewMeal.php';
+                        include 'viewIngredients.php';
                     }
                     echo '<div id="bottom-spacer"></div>';
                     pg_close($db);
