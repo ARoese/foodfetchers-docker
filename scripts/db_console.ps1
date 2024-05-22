@@ -1,0 +1,1 @@
+docker exec -it foodfetchers-database-1 psql -U fetcher1 main
