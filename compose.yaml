@@ -1,17 +1,17 @@
 services:
-  site:
+  foodfetchers-site:
     build: site
     ports: 
       - '8080:80'
     volumes:
       - "coverImages:/var/www/html/coverimages"
     environment:
-      - DB_HOST=database
+      - DB_HOST=foodfetchers-database
       - DB_USER=fetcher1
       - DB_PASS=1234
       - DB_NAME=main
     depends_on:
-      - database
+      - foodfetchers-database
     develop:
       watch:
         - action: sync
@@ -20,7 +20,7 @@ services:
           ignore:
             - coverimages
   
-  database:
+  foodfetchers-database:
     build: database
 #    ports:
 #      - '5432'
