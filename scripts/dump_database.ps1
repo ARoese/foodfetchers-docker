@@ -1,1 +1,1 @@
-docker exec -i foodfetchers-database-1 pg_dump --clean -U fetcher1 -C main > $args[0]
+docker exec -i $args[0] pg_dump --clean -U fetcher1 -C main > $args[1]
