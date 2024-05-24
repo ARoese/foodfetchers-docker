@@ -6,10 +6,10 @@ services:
     volumes:
       - "coverImages:/var/www/html/coverimages"
     environment:
-      - DB_HOST=foodfetchers-database
-      - DB_USER=fetcher1
-      - DB_PASS=1234
-      - DB_NAME=main
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
     depends_on:
       - foodfetchers-database
     develop:
@@ -21,11 +21,16 @@ services:
             - coverimages
   
   foodfetchers-database:
-    build: database
+    image: postgres:latest
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
 #    ports:
 #      - '5432'
     volumes:
       - "db:/var/lib/postgresql/data"
+      - "./database/resetTables.sh:/docker-entrypoint-initdb.d/resetTables.sh:ro"
 
 volumes:
   coverImages:
