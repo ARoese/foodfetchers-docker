@@ -1,8 +1,11 @@
 services:
   foodfetchers-site:
+    restart: unless-stopped
     build: site
-    ports: 
-      - '8080:80'
+    # set this port to whatever you want the site open on.
+    # you do NOT need to expose ports like this for foodfetchers-database.
+    #ports: 
+    #  - '8080:80'
     volumes:
       - "coverImages:/var/www/html/coverimages"
     environment:
@@ -21,6 +24,7 @@ services:
             - coverimages
   
   foodfetchers-database:
+    restart: unless-stopped
     image: postgres:latest
     environment:
       - POSTGRES_PASSWORD=${DB_PASS}
