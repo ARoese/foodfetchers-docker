@@ -306,7 +306,7 @@
 												}
 												if ($count > 0){
 													$rand = $resultArray[array_rand($resultArray)];
-													echo "<script> location.href='/view.php?id=$rand'; </script>";
+													echo "<script> location.href='view.php?id=$rand'; </script>";
 													exit;
 												}
 												if ($count == 0 && $notEmpty == false)
