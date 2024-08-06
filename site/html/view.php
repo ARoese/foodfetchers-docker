@@ -81,6 +81,13 @@ $res = pg_query_params($db, "SELECT * FROM recipes WHERE recipeid=$1  AND (creat
 						else {
 							echo '<img src="coverimages/logo.png" alt="recipe cover image does not exist" style="width: 100%; box-shadow: 0 0 3px gray;"/>';
 						}
+                        $filenameWithMp4 = $filename . '.mp4';
+                        if(file_exists($filenameWithMp4)){
+                            echo '<video controls style="max-width: 100%">';
+                            echo "<source src=\"$filenameWithMp4\" type=\"video/mp4\">";
+                            echo 'Your browser does not support the video tag';
+                            echo '</>';
+                        }
 
                         echo "</td><td style='padding-left: 5px;'>";
 

@@ -7,7 +7,12 @@ services:
     #ports: 
     #  - '8080:80'
     volumes:
-      - "coverImages:/var/www/html/coverimages"
+      # TODO: for some reason, this mount does not have write permission set
+      # and chmod needs to be run to make it writeable
+      - "coverImages:/var/www/html/coverimages:rw" 
+      - "./site/html/:/var/www/html/"
+      - "./site/config/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro"
+      - "./site/config/php.ini:/usr/local/etc/php/php.ini:ro"
     environment:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
@@ -16,12 +21,12 @@ services:
     depends_on:
       - foodfetchers-database
     develop:
-      watch:
-        - action: sync
-          path: ./site/html
-          target: /var/www/html
-          ignore:
-            - coverimages
+      #watch:
+      #  - action: sync
+      #    path: ./site/html
+      #    target: /var/www/html
+      #    ignore:
+      #      - coverimages
   
   foodfetchers-database:
     restart: unless-stopped

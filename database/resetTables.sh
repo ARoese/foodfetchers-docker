@@ -14,9 +14,9 @@
 psql -U fetcher1 -c  "
 CREATE TABLE recipes (
     recipeid SERIAL NOT NULL, 
-    recipename varchar(50) NOT NULL, 
-    ingredients varchar(1000) NOT NULL,
-    instructions varchar(10000) NOT NULL, 
+    recipename varchar(100) NOT NULL, 
+    ingredients varchar(100000) NOT NULL,
+    instructions varchar(100000) NOT NULL, 
     creatorid int NOT NULL,
     creationdate timestamptz NOT NULL, 
     vegetarian boolean DEFAULT FALSE,

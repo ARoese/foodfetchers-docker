@@ -11,113 +11,143 @@
         die('<a href="home.php">Click here if you are not automatically redirected</a>');
 	}
 ?>
+<?php
+	include_once 'DButils.php';
+	if($_SERVER['REQUEST_METHOD'] === 'POST'){
+		$instagram = $_POST["instagram"];
+		if(isset($instagram) && $instagram == true){
+			die("instagram import not yet supported");
+		}else{
+			//print_r($_POST);
+			$recipeid = $_POST["recipeid"];
+			$recipeName = $_POST["recipeName"];
+			$_SESSION["userAction"]="created.";
+			;
+			foreach($_POST["ingredients"] as &$postIngr){
+				if(strstr($postIngr['num'],"/")){
+					$postIngr['frac'] = true ;
+				}
+			}
+			$ingredients = json_encode($_POST["ingredients"]);
+			$instructions = $_POST["instructions"];
+			$vegetarian = filter_var($_POST["vegetarian"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$vegan = filter_var($_POST["vegan"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$kosher = filter_var($_POST["kosher"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$nutfree = filter_var($_POST["nutfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$wheatfree = filter_var($_POST["wheatfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$soyfree = filter_var($_POST["soyfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$glutenfree = filter_var($_POST["glutenfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$dairyfree = filter_var($_POST["dairyfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+			$private = filter_var($_POST["private"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
+
+			$coverImage = $_FILES['coverimage'];
+			$video = $_FILES['inlineVideo'];
+
+			//TODO: make sure to validate and sanitize these fields
+
+			$userid = $_SESSION["userid"];
+			$timestamp = date('Y-m-d H:i:s');
+			$db = getDefaultDB();
+			$_SESSION["lastDeleted"]=$_POST["recipeName"];
+			if(isset($recipeid)){
+				$_SESSION["userAction"]="updated.";
+				$res = pg_query_params($db, "SELECT recipeid FROM recipes WHERE recipeid=$1 AND creatorid=$2;", Array($recipeid, $userid));
+				if(pg_num_rows($res) != 0){
+					if(isset($_POST["delete"])){
+						$_SESSION["lastDeleted"]=$_POST["saveName"];
+						pg_query_params($db, "DELETE FROM recipes WHERE recipeid=$1;", Array($recipeid));
+					}
+					else{
+						pg_query_params($db, "DELETE FROM recipes WHERE recipeid=$1;", Array($recipeid));
+					$res = pg_query_params($db, "INSERT INTO recipes (recipeid, recipename, ingredients, instructions, creatorid, creationdate, vegetarian, vegan, kosher, nutfree, wheatfree, soyfree, glutenfree, dairyfree, private) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING recipeid", array($recipeid, $recipeName, $ingredients, $instructions, $userid, $timestamp, $vegetarian, $vegan, $kosher, $nutfree, $wheatfree, $soyfree, $glutenfree, $dairyfree, $private));
+					}
+				}
+				else{
+					$outcome = "You do not have permission to edit this recipe";
+				}
+			}
+			else{//private
+				$res = pg_query_params($db, "INSERT INTO recipes (recipename, ingredients, instructions, creatorid, creationdate, vegetarian, vegan, kosher, nutfree, wheatfree, soyfree, glutenfree, dairyfree, private) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING recipeid", array($recipeName, $ingredients, $instructions, $userid, $timestamp, $vegetarian, $vegan, $kosher, $nutfree, $wheatfree, $soyfree, $glutenfree, $dairyfree, $private));
+			}
+			if($res === false){
+				$outcome = pg_last_error($db);
+			}
+			else{
+				$recipeid = pg_fetch_assoc($res)["recipeid"];
+				if($coverImage["tmp_name"]){
+					$newName = "coverimages/$recipeid";
+					if(file_exists($newName)){
+						unlink($newName);
+					}
+					if(move_uploaded_file($coverImage["tmp_name"], $newName)){
+						$outcome = "success";
+					}
+					else{
+						$outcome = "could not move uploaded file (backend error)<br/>tmp_name: " . $coverImage["tmp_name"];
+					}
+				}
+				else{
+					$outcome = "success";
+				}
+				#$tmpName = $video["tmp_name"];
+				#error_log("handling files getting to video: $outcome | $tmpName | $video");
+				#error_log(json_encode($_FILES));
+				if($video["tmp_name"] && $outcome == "success"){
+					#error_log("entered if");
+					$newName = "coverimages/$recipeid.mp4";
+					if(file_exists($newName)){
+						unlink($newName);
+					}
+					if(move_uploaded_file($video["tmp_name"], $newName)){
+						$outcome = "success";
+					}
+					else{
+						error_log("failed file move");
+						$outcome = "could not move uploaded file (backend error)<br/>tmp_name: " . $video["tmp_name"];
+					}
+				}
+				else{
+					$outcome = "success";
+				}
+			}
+
+			//print_r($coverImage);
+
+			pg_close($db);
+		}
+	}
+	else if($_SERVER["REQUEST_METHOD"] == "GET"){
+		$recipeid = $_GET["recipeid"];
+		$userid = $_SESSION["userid"];
+		$db = getDefaultDB();
+		if(isset($recipeid)){
+			$res = pg_query_params($db, "SELECT * FROM recipes WHERE recipeid = $1 AND creatorid = $2;", Array($recipeid, $userid));
+			if(!isset($userid) || pg_num_rows($res) == 0){
+				http_response_code(403);
+				die("You do not have permission to edit this recipe!" . pg_num_rows($res));
+			}
+			$recipeInfo = pg_fetch_assoc($res);
+			$recipeName = $recipeInfo["recipename"];
+			$ingredients = $recipeInfo["ingredients"];
+			$instructions = $recipeInfo["instructions"];
+			$vegetarian = $recipeInfo["vegetarian"] == 't' ? "true" : "false";
+			$vegan = $recipeInfo["vegan"] == 't' ? "true" : "false";
+			$kosher = $recipeInfo["kosher"] == 't' ? "true" : "false";
+			$nutfree = $recipeInfo["nutfree"] == 't' ? "true" : "false";
+			$wheatfree = $recipeInfo["wheatfree"] == 't' ? "true" : "false";
+			$soyfree = $recipeInfo["soyfree"] == 't' ? "true" : "false";
+			$glutenfree = $recipeInfo["glutenfree"] == 't' ? "true" : "false";
+			$dairyfree = $recipeInfo["dairyfree"] == 't' ? "true" : "false";
+			$private = $recipeInfo["private"] == 't' ? "true" : "false";
+		}
+		pg_close($db);
+	}
+?>
 <!DOCTYPE html>
 <html>
     <head>
         <title> Food Fetchers | Create Recipe </title>
         <link rel="stylesheet" href="phaseIstyle.css">
-		<?php
-			include_once 'DButils.php';
-			if($_SERVER['REQUEST_METHOD'] === 'POST'){
-				//print_r($_POST);
-				$recipeid = $_POST["recipeid"];
-                $recipeName = $_POST["recipeName"];
-                $_SESSION["userAction"]="created.";
-                ;
-                foreach($_POST["ingredients"] as &$postIngr){
-                    if(strstr($postIngr['num'],"/")){
-                        $postIngr['frac'] = true ;
-                    }
-                }
-				$ingredients = json_encode($_POST["ingredients"]);
-				$instructions = $_POST["instructions"];
-				$vegetarian = filter_var($_POST["vegetarian"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-				$vegan = filter_var($_POST["vegan"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-				$kosher = filter_var($_POST["kosher"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-				$nutfree = filter_var($_POST["nutfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-				$wheatfree = filter_var($_POST["wheatfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-				$soyfree = filter_var($_POST["soyfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-				$glutenfree = filter_var($_POST["glutenfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-				$dairyfree = filter_var($_POST["dairyfree"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-                $private = filter_var($_POST["private"], FILTER_VALIDATE_BOOLEAN) ? "true" : "false";
-
-				$coverImage = $_FILES['coverimage'];
-
-				//TODO: make sure to validate and sanitize these fields
-
-				$userid = $_SESSION["userid"];
-				$timestamp = date('Y-m-d H:i:s');
-				$db = getDefaultDB();
-                $_SESSION["lastDeleted"]=$_POST["recipeName"];
-				if(isset($recipeid)){
-                    $_SESSION["userAction"]="updated.";
-					$res = pg_query_params($db, "SELECT recipeid FROM recipes WHERE recipeid=$1 AND creatorid=$2;", Array($recipeid, $userid));
-					if(pg_num_rows($res) != 0){
-						if(isset($_POST["delete"])){
-                            $_SESSION["lastDeleted"]=$_POST["saveName"];
-							pg_query_params($db, "DELETE FROM recipes WHERE recipeid=$1;", Array($recipeid));
-						}
-						else{
-							pg_query_params($db, "DELETE FROM recipes WHERE recipeid=$1;", Array($recipeid));
-						$res = pg_query_params($db, "INSERT INTO recipes (recipeid, recipename, ingredients, instructions, creatorid, creationdate, vegetarian, vegan, kosher, nutfree, wheatfree, soyfree, glutenfree, dairyfree, private) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING recipeid", array($recipeid, $recipeName, $ingredients, $instructions, $userid, $timestamp, $vegetarian, $vegan, $kosher, $nutfree, $wheatfree, $soyfree, $glutenfree, $dairyfree, $private));
-						}
-					}
-					else{
-						$outcome = "You do not have permission to edit this recipe";
-					}
-				}
-				else{//private
-					$res = pg_query_params($db, "INSERT INTO recipes (recipename, ingredients, instructions, creatorid, creationdate, vegetarian, vegan, kosher, nutfree, wheatfree, soyfree, glutenfree, dairyfree, private) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING recipeid", array($recipeName, $ingredients, $instructions, $userid, $timestamp, $vegetarian, $vegan, $kosher, $nutfree, $wheatfree, $soyfree, $glutenfree, $dairyfree, $private));
-				}
-				if($res === false){
-					$outcome = pg_last_error($db);
-				}
-				else{
-					$recipeid = pg_fetch_assoc($res)["recipeid"];
-					if($coverImage["tmp_name"]){
-						if(move_uploaded_file($coverImage["tmp_name"], "coverimages/$recipeid")){
-							$outcome = "success";
-						}
-						else{
-							$outcome = "could not move uploaded file (backend error)<br/>tmp_name: " . $coverImage["tmp_name"];
-						}
-					}
-					else{
-						$outcome = "success";
-					}
-				}
-
-				//print_r($coverImage);
-
-				pg_close($db);
-			}
-			else if($_SERVER["REQUEST_METHOD"] == "GET"){
-				$recipeid = $_GET["recipeid"];
-				$userid = $_SESSION["userid"];
-				$db = getDefaultDB();
-				if(isset($recipeid)){
-					$res = pg_query_params($db, "SELECT * FROM recipes WHERE recipeid = $1 AND creatorid = $2;", Array($recipeid, $userid));
-					if(!isset($userid) || pg_num_rows($res) == 0){
-						http_response_code(403);
-						die("You do not have permission to edit this recipe!" . pg_num_rows($res));
-					}
-					$recipeInfo = pg_fetch_assoc($res);
-					$recipeName = $recipeInfo["recipename"];
-					$ingredients = $recipeInfo["ingredients"];
-					$instructions = $recipeInfo["instructions"];
-					$vegetarian = $recipeInfo["vegetarian"] == 't' ? "true" : "false";
-					$vegan = $recipeInfo["vegan"] == 't' ? "true" : "false";
-					$kosher = $recipeInfo["kosher"] == 't' ? "true" : "false";
-					$nutfree = $recipeInfo["nutfree"] == 't' ? "true" : "false";
-					$wheatfree = $recipeInfo["wheatfree"] == 't' ? "true" : "false";
-					$soyfree = $recipeInfo["soyfree"] == 't' ? "true" : "false";
-					$glutenfree = $recipeInfo["glutenfree"] == 't' ? "true" : "false";
-					$dairyfree = $recipeInfo["dairyfree"] == 't' ? "true" : "false";
-					$private = $recipeInfo["private"] == 't' ? "true" : "false";
-				}
-				pg_close($db);
-			}
-		?>
         <script>
         var ingIndx = 0;
         function setInc(val){
@@ -189,6 +219,12 @@
 								<td style="display: flex;">
 									<label for="coverimage" style="flex: 0; white-space: pre; padding-top: 2px;">Recipe Image:</label>
 									<input type="file" name="coverimage" accept=".png, .jpeg, .jpg" style="flex: 1; margin-left: 4px; width: 100%;"><br/>
+								</td>
+							</tr>
+							<tr>
+								<td style="display: flex;">
+									<label for="inlineVideo" style="flex: 0; white-space: pre; padding-top: 2px;">Video:</label>
+									<input type="file" name="inlineVideo" accept=".mp4" style="flex: 1; margin-left: 4px; width: 100%;"><br/>
 								</td>
 							</tr>
 							<tr>
@@ -286,6 +322,12 @@
 				</tr>
 				
 			</table></form>
+			<br>
+			<form action="create.php" method="post" enctype="multipart/form-data">
+				<label for="instagram"><b>OR</b> Import from instagram</label><br>
+				<textarea name="instagram" rows="1" cols="90" style="resize: none" placeholder="https://www.instagram.com/p/............/"></textarea>
+				<input type="submit" value = "Import">
+			</form>
                 <?php
                     if(isset($recipeid)){
                             include_once 'deleteRecipe.php';//include delete modal
