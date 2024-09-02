@@ -1,5 +1,5 @@
 services:
-  foodfetchers-site:
+  foodfetcher-site-old:
     restart: unless-stopped
     build: site
     # set this port to whatever you want the site open on.
@@ -19,7 +19,7 @@ services:
       - DB_PASS=${DB_PASS}
       - DB_NAME=${DB_NAME}
     depends_on:
-      - foodfetchers-database
+      - foodfetcher-database-old
     develop:
       #watch:
       #  - action: sync
@@ -28,7 +28,7 @@ services:
       #    ignore:
       #      - coverimages
   
-  foodfetchers-database:
+  foodfetcher-database-old:
     restart: unless-stopped
     image: postgres:latest
     environment:
